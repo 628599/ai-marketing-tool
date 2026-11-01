@@ -1,0 +1,6 @@
+# 本地机密文件，永远不要提交
+.streamlit/secrets.toml
+.deps/
+.venv/
+__pycache__/
+*.pyc
