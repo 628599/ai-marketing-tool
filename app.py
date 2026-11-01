@@ -154,12 +154,12 @@ def _render_login_shell(title: str, subtitle: str):
         return mid
 
 
-def _password_login() -> bool:
-    if not get_secret("APP_PASSWORD"):
-        _render_login_shell("🚀 AI 营销与传播助手", "内部演示系统")
-        st.error("服务端尚未配置 `APP_PASSWORD`，无法登录。请在 Secrets 中补上后重启应用。")
-        st.stop()
+# 没配 Secrets 时使用的默认登录口令（这样即使 Secrets 没填，登录页也能正常工作）
+DEFAULT_PASSWORD = "123456"
+DEFAULT_USERNAME = "admin"
 
+
+def _password_login() -> bool:
     if st.session_state.get("login_attempts", 0) >= MAX_ATTEMPTS:
         _render_login_shell("🚀 AI 营销与传播助手", "内部演示系统")
         st.error(f"连续 {MAX_ATTEMPTS} 次登录失败，当前会话已锁定。刷新页面可重新尝试。")
@@ -175,8 +175,8 @@ def _password_login() -> bool:
             submitted = st.form_submit_button("登 录", type="primary")
 
         if submitted:
-            expected_user = get_secret("APP_USERNAME") or "admin"
-            expected_pass = get_secret("APP_PASSWORD") or ""
+            expected_user = get_secret("APP_USERNAME") or DEFAULT_USERNAME
+            expected_pass = get_secret("APP_PASSWORD") or DEFAULT_PASSWORD
             user_ok = hmac.compare_digest(username.strip(), expected_user)
             pass_ok = hmac.compare_digest(password, expected_pass)
             if user_ok and pass_ok:
@@ -248,12 +248,12 @@ if not require_login():
 
 
 # ==================== 6. 业务代码 ====================
-API_KEY = get_secret("DEEPSEEK_API_KEY")
+API_KEY = get_secret("DEEPSEEK_API_KEY") or ""
 if not API_KEY:
-    st.error("服务端未配置 `DEEPSEEK_API_KEY`，AI 功能暂不可用。")
-    st.stop()
+    # 没配 Key 也能进界面看，只是点生成按钮时会报错，避免整页被卡死
+    st.warning("提示：服务端尚未配置 `DEEPSEEK_API_KEY`，AI 生成功能暂不可用（界面可正常浏览）。")
 
-client = OpenAI(api_key=API_KEY, base_url="https://api.deepseek.com")
+client = OpenAI(api_key=API_KEY or "sk-not-configured", base_url="https://api.deepseek.com")
 
 st.title("🚀 AI 营销与传播全链路助手")
 st.markdown("基于 DeepSeek 大模型，一站式解决直播合规、口碑评估、短视频分镜、剪辑指导与视频诊断。")
